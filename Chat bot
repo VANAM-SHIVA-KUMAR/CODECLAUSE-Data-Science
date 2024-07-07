@@ -1,0 +1,52 @@
+import os
+from binance.client import Client
+from binance.enums import *
+import pandas as pd
+import time
+
+# Load your Binance API key and secret from environment variables
+API_KEY = os.getenv('BINANCE_API_KEY')
+API_SECRET = os.getenv('BINANCE_API_SECRET')
+
+client = Client(API_KEY, API_SECRET)
+
+def get_minute_data(symbol, interval, lookback):
+    frame = pd.DataFrame(client.get_historical_klines(symbol,
+                                                      interval,
+                                                      lookback + ' min ago UTC'))
+    frame = frame.iloc[:, :6]
+    frame.columns = ['Time', 'Open', 'High', 'Low', 'Close', 'Volume']
+    frame = frame.set_index('Time')
+    frame.index = pd.to_datetime(frame.index, unit='ms')
+    frame = frame.astype(float)
+    return frame
+
+def strategy(symbol, qty, open_position=False):
+    df = get_minute_data(symbol, '1m', '120')
+    if not open_position:
+        if df['Close'][-1] > df['Close'][-2]:
+            order = client.create_order(symbol=symbol,
+                                        side=SIDE_BUY,
+                                        type=ORDER_TYPE_MARKET,
+                                        quantity=qty)
+            print(order)
+            open_position = True
+    if open_position:
+        while True:
+            df = get_minute_data(symbol, '1m', '5')
+            since_buy = df.iloc[-1]['Close']
+            if since_buy > df['Close'].max() or since_buy < df['Close'].min():
+                order = client.create_order(symbol=symbol,
+                                            side=SIDE_SELL,
+                                            type=ORDER_TYPE_MARKET,
+                                            quantity=qty)
+                print(order)
+                break
+
+# Example usage
+symbol = 'BTCUSDT'
+qty = 0.001  # Quantity to buy/sell
+
+while True:
+    strategy(symbol, qty)
+    time.sleep(60)
