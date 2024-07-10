@@ -1,0 +1,147 @@
+atm-web-app/
+├── public/
+│   ├── css/
+│   │   └── styles.css
+│   ├── js/
+│   │   └── script.js
+│   └── index.html
+├── server/
+│   ├── models/
+│   │   └── user.js
+│   ├── routes/
+│   │   └── atm.js
+│   └── server.js
+├── .env
+├── package.json
+└── package-lock.json
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ATM</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="atm-container">
+        <h1>ATM</h1>
+        <div id="login-form">
+            <input type="text" id="account-number" placeholder="Account Number">
+            <input type="password" id="pin" placeholder="PIN">
+            <button onclick="login()">Login</button>
+        </div>
+        <div id="atm-operations" style="display:none;">
+            <button onclick="checkBalance()">Check Balance</button>
+            <button onclick="withdraw()">Withdraw</button>
+            <button onclick="deposit()">Deposit</button>
+            <button onclick="logout()">Logout</button>
+            <div id="response"></div>
+        </div>
+    </div>
+    <script src="js/script.js"></script>
+</body>
+</html>
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #f0f0f0;
+}
+
+.atm-container {
+    background: white;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+input {
+    display: block;
+    margin: 10px 0;
+    padding: 10px;
+    width: 100%;
+}
+
+button {
+    padding: 10px;
+    width: 100%;
+    margin-top: 10px;
+    background: #007BFF;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #0056b3;
+}
+function login() {
+    const accountNumber = document.getElementById('account-number').value;
+    const pin = document.getElementById('pin').value;
+
+    fetch('/api/login', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ accountNumber, pin })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('login-form').style.display = 'none';
+            document.getElementById('atm-operations').style.display = 'block';
+        } else {
+            alert(data.message);
+        }
+    });
+}
+
+function checkBalance() {
+    fetch('/api/check-balance')
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('response').innerText = `Your balance is $${data.balance}`;
+    });
+}
+
+function withdraw() {
+    const amount = prompt('Enter amount to withdraw:');
+    fetch('/api/withdraw', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ amount })
+    })
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('response').innerText = data.message;
+    });
+}
+
+function deposit() {
+    const amount = prompt('Enter amount to deposit:');
+    fetch('/api/deposit', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ amount })
+    })
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('response').innerText = data.message;
+    });
+}
+
+function logout() {
+    fetch('/api/logout')
+    .then(() => {
+        document.getElementById('login-form').style.display = 'block';
+        document.getElementById('atm-operations').style.display = 'none';
+    });
+}
